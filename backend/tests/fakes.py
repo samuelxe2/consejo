@@ -133,6 +133,13 @@ class InMemoryTicketRepository:
                 conteo[agente.id] = conteo.get(agente.id, 0) + 1
         return conteo
 
+    def list_unassigned(self, categoria: Categoria) -> list[Ticket]:
+        return [
+            copy.deepcopy(t)
+            for t in self.tickets.values()
+            if t.responsable_id is None and t.categoria is categoria and t.estado in ESTADOS_ACTIVOS
+        ]
+
     def list_events(self, ticket_id: str) -> list[Evento]:
         return [e for e in self.eventos if e.ticket_id == ticket_id]
 
@@ -157,8 +164,7 @@ def _contar(tickets: list[Ticket]) -> dict[Estado, int]:
 def _cumple(t: Ticket, f: Filtros) -> bool:
     texto = (f.texto or "").strip().lower()
     return (
-        (f.estado is None or t.estado is f.estado)
-        and (not f.estados or t.estado in f.estados)
+        (not f.estados or t.estado in f.estados)
         and (not texto or texto in t.id.lower() or texto in t.asunto.lower())
         and (f.categoria is None or t.categoria is f.categoria)
         and (f.sistema_origen is None or t.sistema_origen is f.sistema_origen)

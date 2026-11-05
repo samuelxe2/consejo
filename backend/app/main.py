@@ -1,7 +1,6 @@
 """Composición de la aplicación: configuración, base de datos, dependencias y rutas."""
 
 import logging
-from datetime import UTC, datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.deps import Container
 from app.api.errors import register_error_handlers
 from app.api.routers import auth, consultas, tickets
-from app.domain.ports import Clock
+from app.domain.ports import Clock, ahora_utc
 from app.infrastructure.adapters import default_registry
 from app.infrastructure.classifiers.factory import create_classifier
 from app.infrastructure.classifiers.llm import LLMClient
@@ -21,14 +20,10 @@ from app.infrastructure.seed import seed
 from app.infrastructure.sessions import InMemorySessionStore
 
 
-def _ahora() -> datetime:
-    return datetime.now(UTC)
-
-
 def create_app(
     settings: Settings | None = None,
     llm_client: LLMClient | None = None,
-    clock: Clock = _ahora,
+    clock: Clock = ahora_utc,
 ) -> FastAPI:
     settings = settings or Settings()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")

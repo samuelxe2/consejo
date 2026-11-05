@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Generic, Protocol, TypeVar
 
 from app.domain.entities import ClassificationResult, Evento, Faq, Ticket, TicketEntrante, Usuario
 from app.domain.enums import Categoria, Estado, Rol, SistemaOrigen
 
 Clock = Callable[[], datetime]
+
+
+def ahora_utc() -> datetime:
+    return datetime.now(UTC)
 
 
 T = TypeVar("T")
@@ -21,10 +25,9 @@ LIMITE_MAXIMO = 100
 
 @dataclass(frozen=True)
 class Filtros:
-    estado: Estado | None = None
     categoria: Categoria | None = None
     sistema_origen: SistemaOrigen | None = None
-    # Varios estados a la vez (p. ej. "pendientes" = PENDIENTE_CONFIRMACION + ABIERTO).
+    # Estados admitidos (p. ej. "pendientes" = PENDIENTE_CONFIRMACION + ABIERTO); vacío = todos.
     estados: tuple[Estado, ...] = ()
     # Búsqueda por número o asunto.
     texto: str | None = None
@@ -87,6 +90,7 @@ class TicketRepository(Protocol):
     def count_by_estado_for_requester(self, user_id: int) -> dict[Estado, int]: ...
     def count_by_estado_for_assignee(self, user_id: int) -> dict[Estado, int]: ...
     def count_open_by_agent(self, rol: Rol) -> dict[int, int]: ...
+    def list_unassigned(self, categoria: Categoria) -> list[Ticket]: ...
     def list_events(self, ticket_id: str) -> list[Evento]: ...
 
 

@@ -143,6 +143,16 @@ class SqlTicketRepository:
         # el join con users descarta responsable_id nulo
         return {agente: total for agente, total in filas if agente is not None}
 
+    def list_unassigned(self, categoria: Categoria) -> list[Ticket]:
+        modelos = self._s.scalars(
+            select(TicketModel)
+            .where(TicketModel.responsable_id.is_(None))
+            .where(TicketModel.categoria == categoria.value)
+            .where(TicketModel.estado.in_([e.value for e in ESTADOS_ACTIVOS]))
+            .order_by(TicketModel.fecha_creacion, TicketModel.id)
+        )
+        return [ticket_to_entity(m) for m in modelos]
+
     def list_events(self, ticket_id: str) -> list[Evento]:
         modelos = self._s.scalars(
             select(EventoModel)
@@ -156,8 +166,6 @@ class SqlTicketRepository:
 
     def _listar(self, condicion: Any, filtros: Filtros, paginacion: Paginacion) -> Pagina[Ticket]:
         condiciones = [condicion]
-        if filtros.estado:
-            condiciones.append(TicketModel.estado == filtros.estado.value)
         if filtros.estados:
             condiciones.append(TicketModel.estado.in_([e.value for e in filtros.estados]))
         if filtros.categoria:

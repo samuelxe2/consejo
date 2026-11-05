@@ -4,9 +4,6 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Subject, switchMap } from 'rxjs';
 
-/** Tickets por página en la bandeja; "Ver más" amplía de a este tamaño. */
-export const TAMANO_PAGINA_BANDEJA = 20;
-
 import { NotificationService } from '../../core/notification.service';
 import { EstadoSync, PollingService } from '../../core/polling.service';
 import { TicketService } from '../../core/ticket.service';
@@ -17,10 +14,14 @@ import {
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { SkeletonComponent } from '../../shared/components/skeleton.component';
 import { SyncIndicatorComponent } from '../../shared/components/sync-indicator.component';
+import { VerMasComponent } from '../../shared/components/ver-mas.component';
 import { ETIQUETA_ESTADO, ETIQUETA_SISTEMA } from '../../shared/labels';
 import { ESTADOS, Estado, PaginaTickets, Ticket } from '../../shared/models';
 import { TicketActionsComponent } from './ticket-actions.component';
 import { IconComponent } from '../../shared/components/icon.component';
+
+/** Tickets por página en la bandeja; "Ver más" amplía de a este tamaño. */
+export const TAMANO_PAGINA_BANDEJA = 20;
 
 /** Bandeja del agente: solo tickets asignados, filtro por estado y polling (SDD 8.3). */
 @Component({
@@ -37,6 +38,7 @@ import { IconComponent } from '../../shared/components/icon.component';
     TicketActionsComponent,
     PageHeaderComponent,
     SkeletonComponent,
+    VerMasComponent,
   ],
   template: `
     <section>
@@ -94,18 +96,7 @@ import { IconComponent } from '../../shared/components/icon.component';
         }
       }
       @if (sync().datos; as p) {
-        @if (p.items.length < p.total) {
-          <div class="ver-mas">
-            <button
-              type="button"
-              class="btn btn-secundario"
-              data-accion="ver-mas"
-              (click)="verMas()"
-            >
-              Ver más ({{ p.total - p.items.length }} restantes)
-            </button>
-          </div>
-        }
+        <app-ver-mas [mostrados]="p.items.length" [total]="p.total" (cargar)="verMas()" />
       }
     </section>
   `,

@@ -18,7 +18,7 @@ import { SkeletonComponent } from '../../shared/components/skeleton.component';
 import { SyncIndicatorComponent } from '../../shared/components/sync-indicator.component';
 import { TicketHistoryComponent } from '../../shared/components/ticket-history.component';
 import { TicketProgressComponent } from '../../shared/components/ticket-progress.component';
-import { ETIQUETA_ESTADO, ETIQUETA_SISTEMA } from '../../shared/labels';
+import { ETIQUETA_ESTADO, ETIQUETA_SISTEMA, mensajeConfirmacion } from '../../shared/labels';
 import { Estado, Evento, Ticket, esAgente } from '../../shared/models';
 import { TicketActionsComponent } from '../agent/ticket-actions.component';
 import { AutoResponseComponent } from '../user/auto-response.component';
@@ -183,12 +183,7 @@ export class TicketDetailComponent {
   confirmar(resuelto: boolean): void {
     this.procesando.set(true);
     this.tickets.confirmar(this.id(), resuelto).subscribe({
-      next: () =>
-        this.actualizado(
-          resuelto
-            ? '¡Gracias! Marcamos tu caso como resuelto.'
-            : 'Tu caso pasó a soporte funcional.',
-        ),
+      next: () => this.actualizado(mensajeConfirmacion(resuelto)),
       error: () => this.fallo(),
     });
   }

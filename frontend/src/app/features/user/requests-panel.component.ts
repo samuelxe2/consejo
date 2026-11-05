@@ -10,6 +10,8 @@ import { IconComponent } from '../../shared/components/icon.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { SkeletonComponent } from '../../shared/components/skeleton.component';
 import { SyncIndicatorComponent } from '../../shared/components/sync-indicator.component';
+import { VerMasComponent } from '../../shared/components/ver-mas.component';
+import { mensajeConfirmacion } from '../../shared/labels';
 import { PaginaTickets, Ticket } from '../../shared/models';
 import { GrupoEstado, RESUMEN_VACIO, Resumen, agrupar, estadosDe } from '../../shared/resumen';
 import { Confirmacion, TicketListComponent } from './ticket-list.component';
@@ -45,6 +47,7 @@ interface Vista {
     SkeletonComponent,
     SyncIndicatorComponent,
     TicketListComponent,
+    VerMasComponent,
   ],
   template: `
     <app-page-header
@@ -104,18 +107,11 @@ interface Vista {
           [procesando]="procesando()"
           (confirmar)="confirmar($event)"
         />
-        @if (v.pagina.items.length < v.pagina.total) {
-          <div class="ver-mas">
-            <button
-              type="button"
-              class="btn btn-secundario"
-              data-accion="ver-mas"
-              (click)="verMas()"
-            >
-              Ver más ({{ v.pagina.total - v.pagina.items.length }} restantes)
-            </button>
-          </div>
-        }
+        <app-ver-mas
+          [mostrados]="v.pagina.items.length"
+          [total]="v.pagina.total"
+          (cargar)="verMas()"
+        />
       } @else if (v.resumen.total === 0) {
         <div class="tarjeta vacio-ilustrado">
           <app-icon class="vacio-icono" nombre="solicitudes" [tamano]="40" />
@@ -223,11 +219,7 @@ export class RequestsPanelComponent {
       next: (t) => {
         this.procesando.set(null);
         this.reemplazar(t);
-        this.avisos.exito(
-          resuelto
-            ? '¡Gracias! Marcamos tu caso como resuelto.'
-            : 'Tu caso pasó a soporte funcional.',
-        );
+        this.avisos.exito(mensajeConfirmacion(resuelto));
         this.refrescar$.next();
       },
       error: () => this.procesando.set(null),

@@ -127,3 +127,10 @@ def test_seg08_rol_y_responsable_del_cliente_se_ignoran(client: TestClient, logi
         json={"estado": "EN_ATENCION", "rol": "soporte_funcional"},
     )
     assert r2.status_code == 400
+
+
+def test_ruta_inexistente_usa_formato_de_error_del_proyecto(client: TestClient) -> None:
+    r = client.get("/api/no-existe")
+    assert r.status_code == 404
+    assert set(r.json()) == {"error", "detalle", "campo"}
+    assert r.json()["error"] == "no_encontrado"

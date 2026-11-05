@@ -21,7 +21,7 @@ import { NotificationService } from '../../core/notification.service';
 import { TicketService } from '../../core/ticket.service';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { TicketProgressComponent } from '../../shared/components/ticket-progress.component';
-import { ETIQUETA_CATEGORIA } from '../../shared/labels';
+import { ETIQUETA_CATEGORIA, mensajeConfirmacion } from '../../shared/labels';
 import { ApiError, CrearTicketDto, SistemaOrigen, Ticket, esApiError } from '../../shared/models';
 import {
   CampoSolicitud,
@@ -448,11 +448,7 @@ export class NewRequestComponent {
       next: (t) => {
         this.procesando.set(false);
         this.creado.set(t);
-        this.avisos.exito(
-          resuelto
-            ? '¡Gracias! Marcamos tu caso como resuelto.'
-            : 'Tu caso pasó a soporte funcional.',
-        );
+        this.avisos.exito(mensajeConfirmacion(resuelto));
       },
       error: () => this.procesando.set(false),
     });

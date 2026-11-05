@@ -1,7 +1,6 @@
 """Datos semilla (SDD 4.5). Uso: python -m app.infrastructure.seed --reset"""
 
 import argparse
-from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Engine, select
@@ -10,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from app.application.tickets import CrearTicket
 from app.domain.entities import TicketEntrante
 from app.domain.enums import Rol, SistemaOrigen
-from app.domain.ports import Clock
+from app.domain.ports import Clock, ahora_utc
 from app.infrastructure.classifiers.rules import RuleBasedClassifier
 from app.infrastructure.config import Settings
 from app.infrastructure.consultas_frecuentes import como_faqs
@@ -52,30 +51,29 @@ TICKETS_DEMO = [
 ]
 
 
-def _ahora() -> datetime:
-    return datetime.now(UTC)
-
-
 def seed(
     session_factory: sessionmaker[Any],
-    clock: Clock = _ahora,
+    clock: Clock = ahora_utc,
     demo_tickets: bool = True,
     faq_threshold: float = 0.6,
 ) -> None:
     """Carga usuarios, FAQ y tickets de ejemplo si la base está vacía."""
     with session_factory() as s:
+        # Las consultas frecuentes viven en código: se sincronizan siempre, también en bases
+        # que ya tenían usuarios, para que las nuevas lleguen sin recrear la base.
+        for f in como_faqs():
+            s.merge(
+                FaqModel(
+                    id=f.id,
+                    pregunta=f.pregunta,
+                    palabras_clave=",".join(f.palabras_clave),
+                    respuesta=f.respuesta,
+                )
+            )
+        s.commit()
         if s.scalar(select(UserModel.id).limit(1)) is not None:
             return
         s.add_all(UserModel(id=i, nombre=n, email=e, rol=r.value) for i, n, e, r in USUARIOS)
-        s.add_all(
-            FaqModel(
-                id=f.id,
-                pregunta=f.pregunta,
-                palabras_clave=",".join(f.palabras_clave),
-                respuesta=f.respuesta,
-            )
-            for f in como_faqs()
-        )
         s.commit()
 
     if not demo_tickets:
@@ -84,7 +82,8 @@ def seed(
         uow = SqlUnitOfWork(session_factory)
         try:
             estudiante = uow.users.get(1)
-            assert estudiante is not None
+            if estudiante is None:
+                raise RuntimeError("Falta el usuario semilla 1 (solicitante demo).")
             clasificador = RuleBasedClassifier(uow.faqs.list_all(), faq_threshold)
             CrearTicket(
                 uow, clasificador, LeastLoadedRouter(uow.users, uow.tickets), clock

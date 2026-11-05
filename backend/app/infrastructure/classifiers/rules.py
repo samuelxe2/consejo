@@ -32,6 +32,10 @@ def normalizar(texto: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9]+", " ", sin_tildes).split())
 
 
+def _texto_de(entrante: TicketEntrante) -> str:
+    return normalizar(f"{entrante.asunto} {entrante.descripcion}")
+
+
 def _presentes(texto: str, terminos: Iterable[str]) -> list[str]:
     relleno = f" {texto} "
     return [t for t in terminos if f" {t} " in relleno]
@@ -78,11 +82,10 @@ class RuleBasedClassifier:
         self._reglas = reglas or ReglasClasificacion()
 
     def classify(self, entrante: TicketEntrante) -> ClassificationResult:
-        texto = normalizar(f"{entrante.asunto} {entrante.descripcion}")
+        texto = _texto_de(entrante)
         r = self._reglas
 
-        fuertes = _presentes(texto, r.tecnicas_fuertes) + _CODIGO_5XX.findall(texto)
-        debiles = _presentes(texto, r.tecnicas_debiles)
+        fuertes, debiles = self._senales_tecnicas(texto)
         if fuertes or len(debiles) >= 2:
             return self._resultado(Categoria.TECNICO, CONFIANZA_TECNICO_FUERTE, fuertes + debiles)
         if debiles:
@@ -108,7 +111,7 @@ class RuleBasedClassifier:
 
     def sugerir(self, entrante: TicketEntrante) -> ClassificationResult | None:
         """Respuesta de consulta frecuente si aplica (sin indicios técnicos ni de error)."""
-        texto = normalizar(f"{entrante.asunto} {entrante.descripcion}")
+        texto = _texto_de(entrante)
         return None if self._es_tecnico(texto) else self._sugerencia(texto)
 
     def consulta_frecuente(self, texto: str) -> Faq | None:
@@ -120,13 +123,15 @@ class RuleBasedClassifier:
         coincidencia = self._coincidencia(normalizado)
         return coincidencia[0] if coincidencia else None
 
-    def _es_tecnico(self, texto: str) -> bool:
+    def _senales_tecnicas(self, texto: str) -> tuple[list[str], list[str]]:
+        """(fuertes, débiles): única definición de qué es un indicio técnico."""
         r = self._reglas
-        return bool(
-            _presentes(texto, r.tecnicas_fuertes)
-            or _CODIGO_5XX.search(texto)
-            or _presentes(texto, r.tecnicas_debiles)
-        )
+        fuertes = _presentes(texto, r.tecnicas_fuertes) + _CODIGO_5XX.findall(texto)
+        return fuertes, _presentes(texto, r.tecnicas_debiles)
+
+    def _es_tecnico(self, texto: str) -> bool:
+        fuertes, debiles = self._senales_tecnicas(texto)
+        return bool(fuertes or debiles)
 
     def _coincidencia(self, texto: str) -> tuple[Faq, float] | None:
         if _presentes(texto, self._reglas.errores):

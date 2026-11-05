@@ -118,3 +118,9 @@ def test_cliente_anthropic_arma_la_peticion(monkeypatch: pytest.MonkeyPatch) -> 
     assert json.loads(texto)["categoria"] == "TECNICO"
     assert capturado["timeout"] == 3
     assert capturado["json"]["model"] == "modelo-x"  # type: ignore[index]
+
+
+def test_llm_auto_sin_respuesta_cae_a_reglas() -> None:
+    llm = FakeLLM(_json(categoria="AUTO", respuesta=None, confianza=0.9))
+    resultado = _fallback(llm).classify(entrante())
+    assert resultado.metodo is Metodo.RULES

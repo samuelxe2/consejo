@@ -4,6 +4,7 @@ from datetime import UTC
 from typing import Any
 
 import pytest
+from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
@@ -11,9 +12,11 @@ from app.application.tickets import CrearTicket
 from app.domain.enums import Categoria, Estado, Rol, TipoEvento
 from app.domain.ports import Filtros
 from app.infrastructure.classifiers.rules import RuleBasedClassifier
-from app.infrastructure.db import TicketModel
+from app.infrastructure.consultas_frecuentes import como_faqs
+from app.infrastructure.db import FaqModel, TicketModel
 from app.infrastructure.repositories import SqlUnitOfWork, ticket_to_entity
 from app.infrastructure.router import LeastLoadedRouter
+from app.infrastructure.seed import seed
 from tests.fakes import ESTUDIANTE, FUNCIONAL1, FUNCIONAL2, FakeClock, entrante, ticket
 
 
@@ -109,7 +112,7 @@ def test_repositorios_de_usuarios_faq_y_filtros(session_factory: sessionmaker[An
     uow.tickets.add(ticket())
     uow.tickets.add(ticket(Categoria.AUTO, ticket_id="TCK-0002"))
     assert len(uow.tickets.list_by_requester(1, Filtros(categoria=Categoria.AUTO)).items) == 1
-    assert len(uow.tickets.list_by_assignee(3, Filtros(estado=Estado.ABIERTO)).items) == 1
+    assert len(uow.tickets.list_by_assignee(3, Filtros(estados=(Estado.ABIERTO,))).items) == 1
     uow.close()
 
 
@@ -132,3 +135,15 @@ def test_uc08_fallo_a_mitad_no_deja_ticket_sin_eventos(
     verificacion = _uow(session_factory)
     assert verificacion.tickets.list_by_requester(ESTUDIANTE.id, Filtros()).items == []
     verificacion.close()
+
+
+def test_seed_sincroniza_faqs_en_bases_existentes(session_factory: sessionmaker[Any]) -> None:
+    with session_factory() as s:
+        s.execute(delete(FaqModel).where(FaqModel.id == 1))
+        s.commit()
+    seed(session_factory, demo_tickets=False)
+    uow = SqlUnitOfWork(session_factory)
+    try:
+        assert len(uow.faqs.list_all()) == len(como_faqs())
+    finally:
+        uow.close()

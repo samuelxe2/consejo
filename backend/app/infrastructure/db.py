@@ -100,6 +100,8 @@ class FaqModel(Base):
 
 
 def make_engine(url: str) -> Engine:
+    if not url.startswith("sqlite"):
+        return create_engine(url)
     if url in ("sqlite://", "sqlite:///:memory:"):
         engine = create_engine(url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
     else:

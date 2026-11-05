@@ -13,7 +13,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}},
 )
 def login(body: LoginRequest, uow: UowDep, container: ContainerDep) -> LoginResponse:
-    sesion = IniciarSesion(uow, container.sessions).ejecutar(body.email)
+    sesion = IniciarSesion(uow, container.sessions, container.clock).ejecutar(body.email)
     return LoginResponse(
         token=sesion.token,
         rol=sesion.usuario.rol,

@@ -31,6 +31,13 @@ export const ETIQUETA_EVENTO: Record<TipoEvento, string> = {
   RECLASIFICADO: 'Reclasificado',
 };
 
+/** Aviso tras confirmar (o rechazar) la respuesta automática. */
+export function mensajeConfirmacion(resuelto: boolean): string {
+  return resuelto
+    ? '¡Gracias! Marcamos tu caso como resuelto.'
+    : 'Tu caso pasó a soporte funcional.';
+}
+
 /** Nombre de clase CSS derivado del valor: EN_ATENCION -> en-atencion. */
 export function claseDe(valor: string): string {
   return valor.toLowerCase().replaceAll('_', '-');

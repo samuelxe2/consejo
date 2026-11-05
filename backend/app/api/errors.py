@@ -5,6 +5,7 @@ import logging
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.domain.errors import (
     DominioError,
@@ -48,6 +49,12 @@ def register_error_handlers(app: FastAPI) -> None:
         # FastAPI usa 422 por defecto; el contrato del proyecto usa 400.
         detalle, campo = _detalle_validacion(exc)
         return _error(status.HTTP_400_BAD_REQUEST, "validacion", detalle, campo)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+        # Rutas inexistentes, método no permitido, etc.: mismo formato que el resto.
+        error = {404: "no_encontrado", 405: "metodo_no_permitido"}.get(exc.status_code, "http")
+        return _error(exc.status_code, error, str(exc.detail))
 
     @app.exception_handler(DominioError)
     async def _dominio(_: Request, exc: DominioError) -> JSONResponse:

@@ -51,6 +51,9 @@ class LLMClassifier:
         )
         salida = _SalidaLLM.model_validate(json.loads(crudo))  # lanza si es inválido
         categoria = Categoria(salida.categoria)
+        if categoria is Categoria.AUTO and not (salida.respuesta or "").strip():
+            # Un AUTO sin respuesta dejaría al usuario sin nada que confirmar.
+            raise ValueError("El LLM clasificó AUTO sin respuesta sugerida.")
         return ClassificationResult(
             categoria,
             salida.motivo,

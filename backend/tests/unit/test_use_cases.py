@@ -152,7 +152,7 @@ def test_uc07_listar_por_rol_y_filtros() -> None:
     assert listar.ejecutar(FUNCIONAL2, Filtros()).items == []
     filtrados = listar.ejecutar(ESTUDIANTE, Filtros(categoria=Categoria.TECNICO))
     assert [t.id for t in filtrados.items] == [tecnico.id]
-    pendientes = listar.ejecutar(ESTUDIANTE, Filtros(estado=Estado.PENDIENTE_CONFIRMACION))
+    pendientes = listar.ejecutar(ESTUDIANTE, Filtros(estados=(Estado.PENDIENTE_CONFIRMACION,)))
     assert [t.id for t in pendientes.items] == [auto.id]
 
 
@@ -173,10 +173,10 @@ def test_casos_de_uso_de_sesion() -> None:
     uow = FakeUoW()
     reloj = FakeClock()
     store = InMemorySessionStore(ttl_min=60, clock=reloj)
-    sesion = IniciarSesion(uow, store).ejecutar("ESTUDIANTE@demo.unad.edu.co")
+    sesion = IniciarSesion(uow, store, FakeClock()).ejecutar("ESTUDIANTE@demo.unad.edu.co")
     assert AutenticarToken(store).ejecutar(sesion.token).usuario == ESTUDIANTE
     with pytest.raises(NoAutenticado):
-        IniciarSesion(uow, store).ejecutar("nadie@demo.unad.edu.co")
+        IniciarSesion(uow, store, FakeClock()).ejecutar("nadie@demo.unad.edu.co")
     with pytest.raises(NoAutenticado):
         AutenticarToken(store).ejecutar(None)
     CerrarSesion(store).ejecutar(sesion.token)
@@ -192,3 +192,24 @@ def test_sesion_expira() -> None:
     assert store.get(sesion.token) is not None
     reloj.avanzar(minutes=1)
     assert store.get(sesion.token) is None
+
+
+def test_agente_que_inicia_sesion_toma_tickets_huerfanos() -> None:
+    # Sin agentes funcionales, el ticket queda sin responsable.
+    uow = FakeUoW(usuarios=[ESTUDIANTE, TECNICO])
+    reloj = FakeClock()
+    store = InMemorySessionStore(ttl_min=60, clock=reloj)
+    crear = CrearTicket(
+        uow,
+        FixedClassifier(clasificacion(Categoria.FUNCIONAL)),
+        LeastLoadedRouter(uow.users, uow.tickets),
+        reloj,
+    )
+    huerfano = crear.ejecutar(entrante(), ESTUDIANTE)
+    assert huerfano.responsable_id is None
+
+    # Llega un agente funcional: al iniciar sesión se queda con el ticket.
+    uow.users._usuarios[FUNCIONAL1.id] = FUNCIONAL1
+    IniciarSesion(uow, store, reloj).ejecutar(FUNCIONAL1.email)
+    asignado = uow.tickets.get(huerfano.id)
+    assert asignado is not None and asignado.responsable_id == FUNCIONAL1.id
