@@ -134,3 +134,4 @@ def test_ruta_inexistente_usa_formato_de_error_del_proyecto(client: TestClient) 
     assert r.status_code == 404
     assert set(r.json()) == {"error", "detalle", "campo"}
     assert r.json()["error"] == "no_encontrado"
+    assert r.json()["detalle"] == "El recurso solicitado no existe."

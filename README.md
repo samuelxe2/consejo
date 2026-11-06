@@ -54,11 +54,11 @@ uvicorn app.main:app --reload --port 8000
 | GET | /api/tickets/{id}/eventos | Historial del ticket |
 | GET | /api/consultas-frecuentes | Consultas frecuentes del diccionario (autoservicio antes de crear un ticket) |
 | POST | /api/consultas-frecuentes/sugerencia | `{"asunto": "...", "descripcion": "..."}` → la consulta frecuente que se sugeriría, con la misma regla del clasificador (o `null`) |
-
-El número de ticket sale de un contador atómico en la tabla `secuencias` (no de `max(id) + 1`), así dos solicitudes simultáneas nunca reciben el mismo número. Las bases anteriores se migran solas al arrancar: el contador parte del mayor número existente.
 | POST | /api/tickets | Crea, clasifica y enruta |
 | PATCH | /api/tickets/{id} | El agente asignado cambia el estado: `{"estado": "EN_ATENCION"}` |
 | PATCH | /api/tickets/{id}/confirmacion | El solicitante acepta o rechaza la respuesta AUTO: `{"resuelto": true}` |
+
+El número de ticket sale de un contador atómico en la tabla `secuencias` (no de `max(id) + 1`), así dos solicitudes simultáneas nunca reciben el mismo número. Las bases anteriores se migran solas al arrancar: el contador parte del mayor número existente.
 
 Crear desde la vista: `{"sistema_origen": "MAIA", "asunto": "...", "descripcion": "..."}`.
 

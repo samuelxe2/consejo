@@ -18,6 +18,13 @@ from app.domain.errors import (
 logger = logging.getLogger(__name__)
 
 
+# Mensajes por defecto de Starlette/FastAPI, en español.
+_HTTP_ES: dict[int, tuple[str, str]] = {
+    404: ("no_encontrado", "El recurso solicitado no existe."),
+    405: ("metodo_no_permitido", "Método no permitido para este recurso."),
+}
+
+
 def _error(codigo: int, error: str, detalle: str, campo: str | None = None) -> JSONResponse:
     return JSONResponse(
         status_code=codigo, content={"error": error, "detalle": detalle, "campo": campo}
@@ -53,8 +60,8 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def _http(_: Request, exc: StarletteHTTPException) -> JSONResponse:
         # Rutas inexistentes, método no permitido, etc.: mismo formato que el resto.
-        error = {404: "no_encontrado", 405: "metodo_no_permitido"}.get(exc.status_code, "http")
-        return _error(exc.status_code, error, str(exc.detail))
+        error, detalle = _HTTP_ES.get(exc.status_code, ("http", str(exc.detail)))
+        return _error(exc.status_code, error, detalle)
 
     @app.exception_handler(DominioError)
     async def _dominio(_: Request, exc: DominioError) -> JSONResponse:
